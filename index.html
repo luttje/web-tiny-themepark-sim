@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+  <title>Theme Park Simulator</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+
+    header {
+      background-color: #33658A;
+      color: white;
+      padding: 1rem;
+      margin: 1rem;
+      margin-bottom: 0;
+      border-radius: 0.5rem;
+    }
+
+    #simulationSpeed {
+      text-align: center;
+    }
+
+    #currentGameTime {
+      background-color: #f2f2f2;
+      color: #33658A;
+      white-space: nowrap;
+    }
+
+    header nav ul {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-evenly;
+      gap: 1rem;
+    }
+
+    header nav ul li {
+      padding: 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid #fff;
+      margin: 0;
+      height: 100%;
+      text-align: center;
+    }
+
+    header nav ul li:not(#currentGameTime) {
+      cursor: pointer;
+      user-select: none;
+      width: 100%;
+    }
+
+    fieldset:not(:disabled) header nav ul li:hover {
+      background-color: #f2f2f2;
+      color: #33658A;
+    }
+
+    span.red {
+      color: #c03434;
+    }
+
+    h1,
+    h2 {
+      text-align: center;
+    }
+
+    section {
+      padding: 1rem;
+    }
+
+    .table-tabs-container {
+      display: flex;
+      flex-direction: column;
+      border-radius: 0.5rem;
+    }
+
+    .table-tabs-container nav ul {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-evenly;
+      padding: 0;
+      margin: 0;
+    }
+
+    .table-tabs-container nav ul li {
+      cursor: pointer;
+      padding: 1rem;
+      border-radius: 0.5rem 0.5rem 0 0;
+      border: 1px solid #ddd;
+      margin: 0;
+      flex: 1;
+      text-align: center;
+    }
+
+    .table-tabs-container nav ul li.active {
+      background-color: #f0f0f0;
+    }
+
+    .table-tabs-container nav ul li:hover {
+      background-color: #f2f2f2;
+    }
+
+    .table-tabs {
+      overflow-x: hidden;
+      box-shadow: inset 0 0 5px 0 rgba(0, 0, 0, 0.2);
+    }
+
+    .table-tabs table {
+      display: none;
+    }
+
+    .table-tabs table.active {
+      display: table;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    table thead div {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem;
+    }
+
+    table thead h3 {
+      display: none;
+    }
+
+    table thead h3,
+    table thead p {
+      margin: 0;
+    }
+
+    th,
+    td {
+      padding: 0.5rem;
+      text-align: left;
+    }
+
+    th:nth-child(2),
+    td:nth-child(2) {
+      min-width: 50%;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    ul li:not(:last-child) {
+      margin-bottom: 0.5rem;
+    }
+
+    ul li pre {
+      max-height: 10rem;
+      overflow: auto;
+      font-size: 1.25rem;
+      margin: 0;
+    }
+
+    .logs-list {
+      overflow: auto;
+      padding: 0;
+      margin: 0;
+    }
+
+    #logsList {
+      max-height: 50rem;
+    }
+
+    #importantLogsList {
+      max-height: 20rem;
+      margin-bottom: 0.5rem;
+      border: 1px solid #c03434;
+      border-radius: 0.5rem;
+    }
+
+    .logs-list li {
+      padding: 0.5rem;
+      border: 1px solid #ddd;
+      border-radius: 0.5rem;
+      background-color: #f0f0f0;
+    }
+
+    #importantLogsList li {
+      background-color: #f8d7da;
+    }
+
+    .logs-list li div {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logs-list li span {
+      font-size: 0.75rem;
+      color: #666;
+      font-style: italic;
+    }
+
+    #logsCount {
+      font-weight: normal;
+      font-style: italic;
+      display: block;
+    }
+
+    #rootFieldset {
+      margin: 0;
+      padding: 0;
+      border: none;
+    }
+  </style>
+</head>
+
+<body>
+  <fieldset id="rootFieldset">
+    <header>
+      <h1>Theme Park Simulator</h1>
+      <div id="simulationSpeed">
+        <div>
+          Simulation Speed: <input type="text"
+                 value="1000"> milliseconds per tick (in-game minute)
+        </div>
+      </div>
+      <nav>
+        <ul>
+          <li id="currentGameTime">
+
+          </li>
+          <li id="pauseButton">Pause Simulation</li>
+          <li id="nextTickButton"
+              style="display: none;">Next Tick</li>
+          <li id="resumeButton"
+              style="display: none;">Resume Simulation</li>
+          <li id="actionDebugButton"
+              style="width: auto; white-space: nowrap;">Cheat: Buy/hire one of everything</li>
+        </ul>
+      </nav>
+      <div>
+        <label style="font-style: italic; font-size: small;">
+          <input type="checkbox" id="enableMinimalUI">
+          Enable minimal UI (helps with performance when there are many entities)
+        </label>
+      </div>
+    </header>
+
+    <section>
+      <h2>Entities</h2>
+
+      <div class="table-tabs-container">
+        <nav>
+          <ul id="entitiesTableNav">
+          </ul>
+        </nav>
+        <div id="entitiesTables"
+             class="table-tabs">
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Logs <small id="logsCount"></small></h2>
+
+      <ul id="importantLogsList"
+          class="logs-list">
+        <li>Important logs will appear here</li>
+      </ul>
+      <ul id="logsList"
+          class="logs-list">
+      </ul>
+    </section>
+  </fieldset>
+
+  <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
+  <script src="js/third-party/acorn_interpreter.js"></script>
+  <script src="js/third-party/math-seedrandom.js"></script>
+  <script src="js/datatypes.js"></script>
+  <script src="js/simulation-core.js"></script>
+  <script src="js/simulation.js"></script>
+  <script>
+    const guestsCanvasEl = document.getElementById('guestsCanvas');
+    const entitiesTablesEl = document.getElementById('entitiesTables');
+    const entitiesTableNavEl = document.getElementById('entitiesTableNav');
+    const rootFieldsetEl = document.getElementById('rootFieldset');
+
+    function setPageDisabled(disabled) {
+      rootFieldsetEl.disabled = disabled;
+    }
+
+    function parameterToString(parameter) {
+      const value = parameter.getValue();
+
+      return parameter.toString(value);
+    }
+
+    function replaceWithRespectToScroll(target, replacement, selector) {
+      const elements = target.querySelectorAll(selector);
+      const scrollPositions = Array.from(elements).map(el => el.scrollTop);
+
+      target.parentElement.replaceChild(replacement, target);
+
+      const newElements = replacement.querySelectorAll(selector);
+      for (let i = 0; i < newElements.length; i++) {
+        newElements[i].scrollTop = scrollPositions[i];
+      }
+    }
+
+    // Function to initialize or update tabs
+    function setupOrUpdateTabs(tables, entitiesTablesEl, entitiesTableNavEl) {
+      // Create tab buttons and add them to the navigation
+      tables.forEach((table, index) => {
+        const li = document.createElement('li');
+        li.textContent = table.querySelector('thead h3').textContent;
+
+        // Add click event listener to tab buttons
+        li.addEventListener('click', () => {
+          // Remove 'active' class from all tables and tab buttons
+          removeAllActiveClasses(tables, entitiesTableNavEl);
+
+          // Set current table and tab button as active
+          table.classList.add('active');
+          li.classList.add('active');
+
+          // Optional: Adjust content or perform additional actions
+          adjustContent(index, tables, entitiesTablesEl);
+        });
+
+        // Check if the tab button already exists
+        if (entitiesTableNavEl.children[index]) {
+          if (entitiesTableNavEl.children[index].classList.contains('active')) {
+            li.classList.add('active');
+            table.classList.add('active');
+          }
+
+          entitiesTableNavEl.replaceChild(li, entitiesTableNavEl.children[index]);
+        } else {
+          // Append the tab button if it doesn't exist
+          entitiesTableNavEl.appendChild(li);
+
+          if (index === 0) {
+            li.classList.add('active');
+            table.classList.add('active');
+          }
+        }
+      });
+
+      // Insert or update tables in the main container
+      updateTablesInContainer(tables, entitiesTablesEl);
+    }
+
+    // Function to remove all 'active' classes
+    function removeAllActiveClasses(tables, entitiesTableNavEl) {
+      tables.forEach(table => table.classList.remove('active'));
+      entitiesTableNavEl.querySelectorAll('li').forEach(li => li.classList.remove('active'));
+    }
+
+    // Function to update tables in the main container
+    function updateTablesInContainer(tables, entitiesTablesEl) {
+      // Clear the container before appending updated tables
+      entitiesTablesEl.innerHTML = '';
+
+      tables.forEach(table => {
+        entitiesTablesEl.appendChild(table);
+      });
+    }
+
+    // Optional: Function to adjust content based on active table
+    function adjustContent(index, tables, entitiesTablesEl) {
+      // Replace the current table with respect to scroll position
+      replaceWithRespectToScroll(entitiesTablesEl.children[index], tables[index], 'table');
+    }
+
+    function valueToString(value) {
+      if (value instanceof Entity) {
+        value = value.category.entityToString(value);
+      } else if (Array.isArray(value)) {
+        const toStringedArray = value.map(v => valueToString(v));
+        const json = JSON.stringify(toStringedArray, null, 2);
+        value = `Array[${value.length}] ${json}`;
+      } else if (typeof value === 'object') {
+        // For each key in the object, call valueToString recursively
+        const toStringedObject = Object.keys(value).reduce((acc, key) => {
+          acc[key] = valueToString(value[key]);
+          return acc;
+        }, {});
+        const json = JSON.stringify(toStringedObject, null, 2);
+        value = `Object ${json}`;
+      }
+
+      return value;
+    }
+    // Creates tables for each entity category, or updates them if they already exist
+    function updateEntitiesTables(entities, minimalUI = false) {
+      const categoriesByName = {};
+      const entitiesByCategory = categories.reduce((acc, category) => {
+        acc[category.name] = entities.filter(entity => entity.category === category);
+        categoriesByName[category.name] = category;
+        return acc;
+      }, {});
+
+      const tables = Object.keys(entitiesByCategory).map(categoryName => {
+        const entities = entitiesByCategory[categoryName];
+        const category = categoriesByName[categoryName];
+        const table = document.createElement('table');
+        table.classList.add('table-trim');
+
+        const header = table.createTHead();
+        const headerRow = header.insertRow(0);
+        const headerCell = headerRow.insertCell(0);
+        headerCell.colSpan = 3;
+        const icon = Array.isArray(category.icons)
+          ? category.icons[0]
+          : category.icons;
+        headerCell.innerHTML = `<div><h3>${icon} ${category.name}</h3><p>${entities.length} total</p></div>`;
+        headerCell.style.backgroundColor = category.color;
+
+        // If the category has actions, add a button to the headerCell div
+        if (category.actions.length > 0) {
+          const headerCellDiv = headerCell.querySelector('div');
+          const headerCellActionsDiv = document.createElement('div');
+          headerCellDiv.appendChild(headerCellActionsDiv);
+
+          for (const action of category.actions) {
+            const actionsButton = document.createElement('button');
+            actionsButton.textContent = action.name;
+            actionsButton.addEventListener('click', () => {
+              if (simulation.isPaused()) {
+                alert('The simulation is paused. Please resume it to perform this action.');
+                return;
+              }
+              setPageDisabled(true);
+              action.execute();
+            });
+
+            headerCellActionsDiv.appendChild(actionsButton);
+          }
+        }
+
+        if (minimalUI) {
+          return table;
+        }
+
+        const body = table.createTBody();
+        entities.forEach(entity => {
+          const row = body.insertRow(-1);
+          const nameCell = row.insertCell(0);
+          const stateCell = row.insertCell(1);
+          const parametersCell = row.insertCell(2);
+
+          nameCell.textContent = entity.name;
+          const currentState = entity.getState();
+          const currentStateStore = entity.store;
+          stateCell.innerHTML = `<strong>${currentState.typeName}</strong><ul>${Object.keys(currentStateStore).map(
+            key => `<li>${key}: <pre>${valueToString(currentStateStore[key])}</pre></li>`
+          ).join('\n')}</ul>`;
+          parametersCell.innerHTML = `<ul>` + entity.parameters.map(
+            parameter => `<li>${parameter.type.name}: <pre>${parameterToString(parameter)}</pre></li>`
+          ).join('\n') + `</ul>`;
+        });
+
+        return table;
+      });
+
+      setupOrUpdateTabs(tables, entitiesTablesEl, entitiesTableNavEl);
+    }
+
+    const logsListEL = document.getElementById('logsList');
+    const importantLogsListEl = document.getElementById('importantLogsList');
+    const MAX_LOGS = 250;
+    const MAX_LOGS_IMPORTANT = 20;
+    const logsCountEl = document.getElementById('logsCount');
+    logsCountEl.textContent = `(last ${MAX_LOGS} shown)`;
+    let latestLogCount = 0;
+
+    // Prepend new logs, leave the old ones in place
+    function updateLogsList(logs) {
+      const newLogs = logs.slice(latestLogCount);
+      latestLogCount = logs.length;
+
+      newLogs.forEach(log => {
+        const li = document.createElement('li');
+        const minuteFormatted = getFormattedTime(log.timestamp);
+        li.innerHTML = `<div><strong>${log.message}</strong><span>${minuteFormatted}</span></div>`;
+        logsListEL.insertBefore(li, logsListEL.firstChild);
+
+        if (log.isImportant) {
+          const importantLi = li.cloneNode(true);
+          importantLogsListEl.insertBefore(importantLi, importantLogsListEl.firstChild);
+        }
+      });
+
+      // Remove the oldest logs if there are too many
+      if (logsListEL.children.length > MAX_LOGS) {
+        for (let i = logsListEL.children.length - 1; i > MAX_LOGS; i--) {
+          logsListEL.removeChild(logsListEL.children[i]);
+        }
+      }
+
+      // Remove the oldest logs if there are too many
+      if (importantLogsListEl.children.length > MAX_LOGS_IMPORTANT) {
+        for (let i = importantLogsListEl.children.length - 1; i > MAX_LOGS_IMPORTANT; i--) {
+          importantLogsListEl.removeChild(importantLogsListEl.children[i]);
+        }
+      }
+    }
+
+    const currentGameTimeEl = document.getElementById('currentGameTime');
+
+    function getFormattedTime(currentTimeInMinutes) {
+      const day = Math.floor(currentTimeInMinutes / 1440) + 1;
+      const hour = Math.floor((currentTimeInMinutes % 1440) / 60);
+      const minute = currentTimeInMinutes % 60;
+
+      return `Day ${day}, ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    }
+
+    document.addEventListener('simulation-updated', (e) => {
+      const entities = e.detail.entities;
+      const logs = e.detail.logs;
+      const context = e.detail.context;
+
+      currentGameTimeEl.textContent = getFormattedTime(context.currentTime);
+      updateEntitiesTables(entities, context.minimalUI);
+      updateLogsList(logs);
+      
+      setPageDisabled(false);
+    });
+
+    // TODO: Expose this more elegantly
+    const sandbox = {
+      apiFunctions: {
+        print: (message) => console.log(`[sandbox] ${message}`),
+        random: () => context.random(),
+
+        createGuest: (name, currentState, ...parameters) => {
+          const guest = createGuest({
+            name,
+            currentState,
+            parameters,
+          });
+
+          createLog('👋 ' + guest.name + ' enters the park');
+        },
+        createLog,
+
+        newParameter: (type, value) => {
+          const typeMap = {
+            'happiness': PARAMETER_GUEST_HAPPINESS,
+            'money': PARAMETER_GUEST_MONEY,
+            'hunger': PARAMETER_GUEST_HUNGER,
+            'expectedRideCount': PARAMETER_GUEST_EXPECTED_RIDE_COUNT,
+          };
+
+          if (!typeMap[type]) {
+            throw new Error(`Unknown parameter type: ${type}`);
+          }
+
+          return new Parameter({
+            parameterType: typeMap[type],
+            baseValue: value,
+          });
+        },
+
+        findEntitiesByCategoryName: (category) => context.global.findEntitiesByCategoryName(category),
+        countEntities: (entities) => entities.length,
+        sumEntitiesByParameter: (entities, parameter) => {
+          return entities.reduce((sum, entity) => {
+            return sum + entity.getParameter(parameter).getValue();
+          }, 0);
+        },
+
+        getGlobalParameter: (parameter) => {
+          return context.global.getParameter(parameter).getValue();
+        },
+
+        getCurrentTime: () => context.currentTime,
+      },
+      apiConstants: {
+        // TODO: others
+        STATE_GUEST_ENTERING_PARK: STATE_GUEST_ENTERING_PARK,
+      },
+      run: (code, additionalApiFunctions, additionalApiConstants) => {
+        const apiFunctions = { ...sandbox.apiFunctions, ...additionalApiFunctions };
+        const apiConstants = { ...sandbox.apiConstants, ...additionalApiConstants };
+
+        const interpreter = new Interpreter(code, (interpreter, scope) => {
+          for (const key in apiFunctions) {
+            interpreter.setProperty(scope, key, interpreter.createNativeFunction(apiFunctions[key]));
+          }
+
+          for (const key in apiConstants) {
+            interpreter.setProperty(scope, key, apiConstants[key]);
+          }
+        });
+
+        interpreter.run();
+      }
+    }
+
+    const enableMinimalUIEl = document.getElementById('enableMinimalUI');
+    const simulationSpeedEl = document.querySelector('#simulationSpeed input');
+    const millisecondsPerTick = parseInt(simulationSpeedEl.value, 10);
+    const simulation = createSimulation();
+    simulation.start(millisecondsPerTick);
+    const pauseButtonEl = document.getElementById('pauseButton');
+    const resumeButtonEl = document.getElementById('resumeButton');
+    const nextTickButtonEl = document.getElementById('nextTickButton');
+    const actionDebugButtonEl = document.getElementById('actionDebugButton');
+
+    enableMinimalUIEl.addEventListener('change', () => {
+      context.minimalUI = enableMinimalUIEl.checked;
+    });
+
+    actionDebugButtonEl.addEventListener('click', () => {
+      if (simulation.isPaused()) {
+        alert('The simulation is paused. Please resume it to perform this action.');
+        return;
+      }
+
+      // cheat some money
+      context.global.getParameter('parkMoney').setValue(20000);
+      setPageDisabled(true);
+
+      for (const category of categories) {
+        for (const action of category.actions) {
+          action.execute();
+        }
+      }
+    });
+
+    pauseButtonEl.addEventListener('click', () => {
+      simulation.pause();
+      pauseButtonEl.style.display = 'none';
+      resumeButtonEl.style.display = 'block';
+      nextTickButtonEl.style.display = 'block';
+    });
+
+    resumeButtonEl.addEventListener('click', () => {
+      const millisecondsPerTick = parseInt(simulationSpeedEl.value, 10);
+      simulation.resume(millisecondsPerTick);
+
+      pauseButtonEl.style.display = 'block';
+      resumeButtonEl.style.display = 'none';
+      nextTickButtonEl.style.display = 'none';
+    });
+
+    nextTickButtonEl.addEventListener('click', () => {
+      simulation.nextTick();
+    });
+  </script>
+</body>
+
+</html>
